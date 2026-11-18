@@ -16,5 +16,5 @@ A single-file chat web experiment that maps Gemini 4's Periodic Table models (`H
 
 ## Usage
 
-1. Open `index.html` in any browser (or host via GitHub Pages).
+1. Open `index.html` in any browser.
 2. Enter a Gemini API key to send live requests, or leave it blank to test the state transitions and demo responses.
