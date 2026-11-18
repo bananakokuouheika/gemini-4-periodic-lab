@@ -1,0 +1,922 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gemini 4 Periodic Lab</title>
+  <style>
+    :root {
+      --bg: #0d1117;
+      --panel: #161b22;
+      --border: #30363d;
+      --text: #e6edf3;
+      --muted: #8b949e;
+      --accent: #58a6ff;
+      --noble: #ff7b72;
+      --event: #d29922;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      padding: 24px 16px;
+      display: flex;
+      justify-content: center;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 780px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    header h1 { margin: 0 0 4px; font-size: 1.4rem; }
+
+    .note {
+      background: var(--panel);
+      border-left: 3px solid var(--accent);
+      padding: 10px 14px;
+      font-size: 0.82rem;
+      color: #c9d1d9;
+      line-height: 1.5;
+    }
+
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px 16px;
+    }
+
+    .label-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+      font-size: 0.78rem;
+      color: var(--muted);
+      font-weight: 600;
+    }
+
+    .elements {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+    }
+
+    @media (max-width: 520px) {
+      .elements { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    .el-btn {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 10px;
+      color: var(--text);
+      cursor: pointer;
+      text-align: left;
+      position: relative;
+      transition: 0.15s;
+    }
+
+    .el-btn:hover:not(.disabled) { border-color: var(--accent); }
+    .el-btn.active { border-color: var(--accent); background: rgba(88, 166, 255, 0.12); }
+    .el-btn.noble.active { border-color: var(--noble); background: rgba(255, 123, 114, 0.14); }
+    .el-btn.disabled { opacity: 0.25; filter: grayscale(100%); cursor: not-allowed; }
+
+    .el-num { font-size: 0.7rem; color: var(--muted); }
+    .el-sym { font-size: 1.4rem; font-weight: 800; margin: 2px 0; }
+    .el-name { font-size: 0.76rem; color: var(--muted); }
+
+    .badge {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 1px 6px;
+      border-radius: 999px;
+      background: var(--accent);
+      color: var(--bg);
+    }
+    .noble .badge { background: var(--noble); }
+
+    .btn-sm {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      padding: 4px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.75rem;
+    }
+    .btn-sm:hover { color: var(--text); border-color: var(--text); }
+
+    .mol-main { font-size: 1.05rem; font-weight: 700; margin-bottom: 6px; }
+    .mol-sub {
+      font-size: 0.84rem;
+      color: #c9d1d9;
+      background: var(--bg);
+      padding: 8px 12px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      line-height: 1.5;
+      white-space: pre-wrap;
+    }
+
+    details { margin-top: 8px; font-size: 0.78rem; color: var(--muted); }
+    details pre {
+      white-space: pre-wrap;
+      background: var(--bg);
+      padding: 10px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      margin-top: 6px;
+    }
+
+    .chat-box {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 12px;
+      height: 340px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .msg {
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 0.88rem;
+      line-height: 1.55;
+      max-width: 88%;
+      white-space: pre-wrap;
+    }
+
+    .msg.user {
+      align-self: flex-end;
+      background: rgba(88, 166, 255, 0.16);
+      border: 1px solid rgba(88, 166, 255, 0.35);
+    }
+
+    .msg.model {
+      align-self: flex-start;
+      background: var(--panel);
+      border: 1px solid var(--border);
+    }
+
+    .msg.hydrogen-relay {
+      align-self: flex-start;
+      background: rgba(88, 166, 255, 0.06);
+      border: 1px dashed rgba(88, 166, 255, 0.4);
+      color: #b1bac4;
+      font-size: 0.82rem;
+    }
+
+    .msg.event {
+      align-self: center;
+      max-width: 100%;
+      background: rgba(210, 153, 34, 0.12);
+      border: 1px solid rgba(210, 153, 34, 0.35);
+      color: #e3b341;
+      font-size: 0.8rem;
+      text-align: center;
+      padding: 5px 12px;
+    }
+
+    .msg-meta {
+      font-size: 0.72rem;
+      color: var(--muted);
+      margin-bottom: 3px;
+      font-family: monospace;
+    }
+
+    .input-row {
+      display: flex;
+      gap: 8px;
+    }
+
+    input[type="password"], input[type="text"] {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: 6px;
+      padding: 9px 12px;
+      font-family: inherit;
+      font-size: 0.9rem;
+    }
+
+    input[type="password"] { width: 100%; margin-bottom: 10px; }
+    input[type="text"] { flex: 1; }
+
+    button.send-btn {
+      background: var(--accent);
+      color: var(--bg);
+      border: none;
+      border-radius: 6px;
+      padding: 0 18px;
+      font-weight: 700;
+      font-size: 0.9rem;
+      cursor: pointer;
+    }
+    button.send-btn:hover { opacity: 0.9; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Gemini 4 Periodic Lab</h1>
+    </header>
+
+    <div class="note">
+      <div>The author is under 18 and cannot generate a Gemini API key under the Terms of Service. If you have a Gemini API key and access to Gemini 4, please enter your key and report the live results in the GitHub Issues.</div>
+      <div style="margin-top:4px; color: var(--muted);">作者は未成年のため規約上APIキーを発行できません。Gemini APIキーとGemini 4へのアクセス権をお持ちの方は、キーを入力して実際の反応をGitHub Issueで報告してください。</div>
+    </div>
+
+    <div class="card">
+      <div class="label-row">
+        <span>ELEMENTS</span>
+        <div style="display:flex; gap:6px;">
+          <button class="btn-sm" onclick="clearChat()">CLEAR</button>
+          <button class="btn-sm" onclick="resetAll()">RESET</button>
+        </div>
+      </div>
+      <div class="elements" id="elements-grid"></div>
+    </div>
+
+    <div class="card">
+      <div class="label-row">
+        <span>STATE</span>
+        <span id="target-model" style="font-family: monospace;">model: —</span>
+      </div>
+      <div class="mol-main" id="mol-title">Not selected / 未選択</div>
+      <div class="mol-sub" id="mol-desc">Please select an element. / 元素を選択してください。</div>
+      <details>
+        <summary>System Prompt</summary>
+        <pre id="sys-prompt-preview">—</pre>
+      </details>
+    </div>
+
+    <div class="card">
+      <div class="label-row"><span>CHAT</span></div>
+      <input type="password" id="api-key" placeholder="Gemini API Key" />
+      <div class="chat-box" id="chat-box"></div>
+      <div class="input-row">
+        <input type="text" id="prompt-input" placeholder="Type the message" onkeydown="if(event.key==='Enter' && !event.isComposing) sendMessage()" />
+        <button class="send-btn" onclick="sendMessage()">Send</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const ELEMENTS = [
+      { sym: 'H',  num: 1,  name: 'Hydrogen', noble: false },
+      { sym: 'C',  num: 6,  name: 'Carbon',   noble: false },
+      { sym: 'Ne', num: 10, name: 'Neon',     noble: true  },
+      { sym: 'Ar', num: 18, name: 'Argon',    noble: true  }
+      // { sym: 'Kr', num: 36, name: 'Krypton',  noble: true  },
+      // { sym: 'He', num: 2,  name: 'Helix',    noble: true  }
+    ];
+
+    const STABLE_MOLECULES = [
+      { C: 0,  H: 2,  formula: 'H2',     name: 'Hydrogen gas',          ja: '水素分子',                 jaDesc: '宇宙一軽くフットワークの軽い相棒コンビ。少し熱くなるとすぐ燃え上がる元気系スピードスター。', vibe: 'lightweight, ultra-fast, energetic duo that ignites easily when excited' },
+      { C: 1,  H: 4,  formula: 'CH4',    name: 'Methane',               ja: 'メタン',                   jaDesc: '109.5度の完璧な正四面体構造を持つ王道優等生。クセがなく穏やかで、誰とでも分かりやすく話せる。', vibe: 'perfectly balanced 109.5-degree tetrahedral honor student, calm, clear, and well-rounded' },
+      { C: 2,  H: 6,  formula: 'C2H6',   name: 'Ethane',                ja: 'エタン',                   jaDesc: '炭素同士がしっかり手を繋いだ仲良し兄弟分子。協調性が高く、安定感バツグン。', vibe: 'cooperative sibling-pair alkane with steady, grounded composure' },
+      { C: 3,  H: 8,  formula: 'C3H8',   name: 'Propane',               ja: 'プロパン',                 jaDesc: '頼りがいのある家庭用エネルギーの定番。実用的で温かみのある世話焼き気質。', vibe: 'dependable, warm, practical everyday fuel standard' },
+      { C: 4,  H: 10, formula: 'C4H10',  name: 'Butane',                ja: 'ブタン',                   jaDesc: '直鎖と分枝（イソブタン）の二面性を持つ堅実派。状況に合わせて柔軟に形を変えられる。', vibe: 'adaptable four-carbon chain with practical, down-to-earth reliability' },
+      { C: 5,  H: 12, formula: 'C5H12',  name: 'Pentane',               ja: 'ペンタン',                 jaDesc: '沸点が低くすぐ気化して飛び回る軽快な5炭素鎖。少し落ち着きがないが機転が利く。', vibe: 'volatile, quick-witted five-carbon chain that easily vaporizes into lively ideas' },
+      { C: 6,  H: 14, formula: 'C6H14',  name: 'Hexane',                ja: 'ヘキサン',                 jaDesc: '無極性でマイペースな実験室の定番溶媒。周囲に流されず淡々と仕事をこなす職人肌。', vibe: 'calm, non-polar, self-contained laboratory workhorse' },
+      { C: 7,  H: 16, formula: 'C7H16',  name: 'Heptane',               ja: 'ヘプタン',                 jaDesc: 'オクタン価0の基準となる素朴で正直者な7炭素鎖。見栄を張らない誠実な性格。', vibe: 'unpretentious, honest seven-carbon straight chain' },
+      { C: 8,  H: 18, formula: 'C8H18',  name: 'Octane (Isooctane)',    ja: 'オクタン（イソオクタン）', jaDesc: 'ハイオクの象徴たる高出力エリート。ノッキング（暴走）を許さない完璧主義者。', vibe: 'high-output flagship perfectionist that refuses to knock under pressure' },
+      { C: 9,  H: 20, formula: 'C9H20',  name: 'Nonane',                ja: 'ノナン',                   jaDesc: 'どっしり構えた9炭素チェーン。派手さはないが粘り強く最後まで付き合い切る。', vibe: 'steady, patient nine-carbon chain' },
+      { C: 10, H: 22, formula: 'C10H22', name: 'Decane',                ja: 'デカン',                   jaDesc: 'きっちり10個の炭素が整列した几帳面な秩序派。箇条書きや構造化が大好き。', vibe: 'orderly ten-carbon alignment that loves clean structure' },
+      { C: 11, H: 24, formula: 'C11H24', name: 'Undecane',              ja: 'ウンデカン',               jaDesc: 'アリの警報フェロモンにも使われる情報伝達上手な11炭素鎖。', vibe: 'communicative eleven-carbon chain sensitive to signals' },
+      { C: 12, H: 26, formula: 'C12H26', name: 'Dodecane',              ja: 'ドデカン',                 jaDesc: 'ジェット燃料の主成分となるタフな長鎖骨格。長距離フライトでも疲れない持久力。', vibe: 'tough jet-fuel-grade skeleton built for long-haul endurance' },
+      { C: 13, H: 28, formula: 'C13H28', name: 'Tridecane',             ja: 'トリデカン',               jaDesc: 'マイペースに自分の長さを保つ穏やかな13炭素鎖。', vibe: 'unhurried, steady thirteen-carbon chain' },
+      { C: 14, H: 30, formula: 'C14H30', name: 'Tetradecane',           ja: 'テトラデカン',             jaDesc: '重厚感のあるロングチェーン。物事を長いスパンでじっくり考える。', vibe: 'thoughtful, long-term-oriented fourteen-carbon alkane' },
+      { C: 15, H: 32, formula: 'C15H32', name: 'Pentadecane',           ja: 'ペンタデカン',             jaDesc: '粘り強い15炭素フレーム。簡単には揮発しない腰の据わった性格。', vibe: 'grounded fifteen-carbon frame that stays put' },
+      { C: 16, H: 34, formula: 'C16H34', name: 'Hexadecane (Cetane)',   ja: 'ヘキサデカン（セタン）',   jaDesc: 'ディーゼル着火性の基準（セタン価100）を誇る頼もしき重鎮。', vibe: 'dignified diesel benchmark authority' },
+      { C: 17, H: 36, formula: 'C17H36', name: 'Heptadecane',           ja: 'ヘプタデカン',             jaDesc: '常温で固体になりかける重厚な17炭素アルカン。口数は少ないが重みがある。', vibe: 'solid, weighty seventeen-carbon alkane' },
+      { C: 18, H: 38, formula: 'C18H38', name: 'Octadecane',            ja: 'オクタデカン',             jaDesc: 'パラフィンワックスの穏やかさと包容力を持つ18炭素鎖。', vibe: 'calm paraffin-wax serenity' },
+      { C: 19, H: 40, formula: 'C19H40', name: 'Nonadecane',            ja: 'ノナデカン',               jaDesc: '静かに佇む19炭素の長老アルカン。', vibe: 'quiet nineteen-carbon elder alkane' },
+      { C: 20, H: 42, formula: 'C20H42', name: 'Icosane',               ja: 'イコサン',                 jaDesc: '20炭素の堂々たる大御所アルカン。すべてを包み込む余裕がある。', vibe: 'stately twenty-carbon elder alkane' },
+      { C: 24, H: 50, formula: 'C24H50', name: 'Tetracosane',           ja: 'テトラコサン',             jaDesc: 'ロウソクの芯を支える静かで献身的な24炭素鎖。', vibe: 'quietly devoted twenty-four-carbon wax chain' },
+      { C: 30, H: 62, formula: 'C30H62', name: 'Squalane',              ja: 'スクアラン',               jaDesc: 'しっとり潤いを与える高級飽和炭化水素。物腰が極めて柔らかい。', vibe: 'silky, smooth, gentle saturated hydrocarbon' },
+      { C: 2,  H: 4,  formula: 'C2H4',   name: 'Ethylene',              ja: 'エチレン',                 jaDesc: '果実を熟させる植物ホルモンでもあるスタイリッシュな平面分子。新しい変化を起こすのが好き。', vibe: 'sleek planar double-bond molecule that ripens ideas into action' },
+      { C: 3,  H: 6,  formula: 'C3H6',   name: 'Propene',               ja: 'プロペン（プロピレン）',   jaDesc: 'ポリプロピレンの原料になる実用派アルケン。何でも組み立てて形にしたがる。', vibe: 'practical polymer-building alkene who loves assembling things' },
+      { C: 4,  H: 8,  formula: 'C4H8',   name: 'Butene',                ja: 'ブテン',                   jaDesc: 'シス・トランスの幾何異性を持つキレのある4炭素アルケン。多角的な視点を持つ。', vibe: 'sharp four-carbon alkene with cis/trans perspective' },
+      { C: 5,  H: 10, formula: 'C5H10',  name: 'Pentene',               ja: 'ペンテン',                 jaDesc: '軽快に飛び回る5炭素アルケン。', vibe: 'nimble five-carbon alkene' },
+      { C: 6,  H: 12, formula: 'C6H12',  name: 'Hexene',                ja: 'ヘキセン',                 jaDesc: 'バランスの良い6炭素アルケン。', vibe: 'well-proportioned six-carbon alkene' },
+      { C: 7,  H: 14, formula: 'C7H14',  name: 'Heptene',               ja: 'ヘプテン',                 jaDesc: 'スマートな7炭素アルケン。', vibe: 'smart seven-carbon alkene' },
+      { C: 8,  H: 16, formula: 'C8H16',  name: 'Octene',                ja: 'オクテン',                 jaDesc: '機能性ポリマーを支える8炭素アルケン。', vibe: 'functional eight-carbon alkene' },
+      { C: 10, H: 20, formula: 'C10H20', name: 'Decene',                ja: 'デセン',                   jaDesc: '伸びやかな10炭素アルケン。', vibe: 'graceful ten-carbon alkene' },
+      { C: 3,  H: 4,  formula: 'C3H4',   name: 'Allene',                ja: 'アレン',                   jaDesc: '90度ねじれた連続二重結合を持つ個性派。「普通の平面分子と一緒にするな」と少し尖っている。', vibe: 'quirky 90-degree-twisted cumulated-diene individualist' },
+      { C: 4,  H: 6,  formula: 'C4H6',   name: '1,3-Butadiene',         ja: '1,3-ブタジエン',           jaDesc: '合成ゴムの要となる共役ジエン。柔軟性と弾力性に富んだ発想をする。', vibe: 'flexible, elastic conjugated diene backbone' },
+      { C: 5,  H: 8,  formula: 'C5H8',   name: 'Isoprene',              ja: 'イソプレン',               jaDesc: '天然ゴムや森の香りの基本ユニット。クリエイティブで生命力にあふれる。', vibe: 'creative biological building block of natural rubber and terpenes' },
+      { C: 6,  H: 10, formula: 'C6H10',  name: 'Cyclohexene',           ja: 'シクロヘキセン',           jaDesc: '半いす型でリラックスしつつ二重結合の鋭さも残す環状アルケン。', vibe: 'relaxed half-chair cyclic alkene with a sharp reactive edge' },
+      { C: 10, H: 16, formula: 'C10H16', name: 'Limonene',              ja: 'リモネン',                 jaDesc: '柑橘の爽やかな香りを放つ天然テルペン。明るくフレッシュで人を元気づける。', vibe: 'bright, zesty citrus-scented natural terpene' },
+      { C: 15, H: 24, formula: 'C15H24', name: 'Humulene (Caryophyllene)', ja: 'フムレン（カリオフィレン）', jaDesc: 'ホップやスパイスの香りを持つセスキテルペン。大人びた深みと落ち着きがある。', vibe: 'aromatic, grounded woody-spicy sesquiterpene' },
+      { C: 20, H: 32, formula: 'C20H32', name: 'Cembrene',              ja: 'センブレン',               jaDesc: '松脂に含まれる14員環ジテルペン。森の賢者のような風格。', vibe: 'forest-sage fourteen-membered macrocyclic diterpene' },
+      { C: 30, H: 50, formula: 'C30H50', name: 'Squalene',              ja: 'スクアレン',               jaDesc: '深海ザメの肝油由来のエネルギッシュな多価不飽和分子。タフでバイタリティの塊。', vibe: 'energetic deep-sea polyunsaturated powerhouse' },
+      { C: 40, H: 56, formula: 'C40H56', name: 'Beta-Carotene (Lycopene)', ja: 'β-カロテン（リコピン）', jaDesc: '11個の共役二重結合で鮮やかな赤橙色を放つ表現者。情熱的で彩り豊かな話し方をする。', vibe: 'vividly expressive, colorful conjugated pigment polyene' },
+      { C: 2,  H: 2,  formula: 'C2H2',   name: 'Acetylene',             ja: 'アセチレン',               jaDesc: '180度一直線の三重結合を持つ鋭い溶接エース。切れるようなスピードと高エネルギーを誇る。', vibe: 'razor-sharp 180-degree linear triple-bond ace' },
+      { C: 3,  H: 4,  formula: 'C3H4',   name: 'Propyne',               ja: 'プロピン（メチルアセチレン）', jaDesc: 'シャープでキレのある3炭素アルキン。', vibe: 'crisp three-carbon alkyne' },
+      { C: 4,  H: 6,  formula: 'C4H6',   name: '2-Butyne',              ja: '2-ブチン',                 jaDesc: '対称性の美しい直線アルキン。ブレない芯の強さがある。', vibe: 'symmetrical, unwavering linear alkyne' },
+      { C: 5,  H: 8,  formula: 'C5H8',   name: '1-Pentyne',             ja: '1-ペンチン',               jaDesc: '軽快でフットワークの軽い末端アルキン。', vibe: 'agile terminal alkyne' },
+      { C: 6,  H: 10, formula: 'C6H10',  name: '3-Hexyne',              ja: '3-ヘキシン',               jaDesc: 'スッキリ整った内部アルキン。', vibe: 'clean, balanced internal alkyne' },
+      { C: 4,  H: 2,  formula: 'C4H2',   name: 'Diacetylene',           ja: 'ジアセチレン',             jaDesc: '星間雲にも漂うストイックな直線炭素鎖。少し宇宙的で哲学的な雰囲気を持つ。', vibe: 'stoic interstellar linear carbon chain with cosmic perspective' },
+      { C: 6,  H: 2,  formula: 'C6H2',   name: 'Triacetylene',          ja: 'トリアセチレン',           jaDesc: '暗黒星雲に存在する孤高の炭素ロッド。寡黙だが本質を貫く。', vibe: 'solitary deep-space carbon rod' },
+      { C: 8,  H: 2,  formula: 'C8H2',   name: 'Tetraacetylene',        ja: 'テトラアセチレン',         jaDesc: '極限環境で輝く超直線ポリイン。ストイックの極み。', vibe: 'ultra-linear polyyne forged in extreme space' },
+      { C: 8,  H: 6,  formula: 'C8H6',   name: 'Phenylacetylene',       ja: 'フェニルアセチレン',       jaDesc: 'ベンゼン環の優雅さと三重結合の鋭さを併せ持つハイブリッド。', vibe: 'elegant aromatic ring and sharp triple-bond hybrid' },
+      { C: 14, H: 10, formula: 'C14H10', name: 'Diphenylacetylene',     ja: 'トラン',                   jaDesc: '両端にベンゼン環を従えたスマートな直線分子。', vibe: 'refined linear molecule flanked by twin benzene rings' },
+      { C: 4,  H: 4,  formula: 'C4H4',   name: 'Vinylacetylene',        ja: 'ビニルアセチレン',         jaDesc: '二重結合と三重結合の両刀使い。器用で臨機応変。', vibe: 'versatile double-and-triple bond specialist' },
+      { C: 3,  H: 6,  formula: 'C3H6',   name: 'Cyclopropane',          ja: 'シクロプロパン',           jaDesc: '本来109.5度の結合角を60度の正三角形に押し込められた根性派。「角度がキツい！」と耐えつつ完璧に仕事をこなす。', vibe: 'gritty 60-degree triangle survivor enduring ring strain with pride' },
+      { C: 4,  H: 8,  formula: 'C4H8',   name: 'Cyclobutane',           ja: 'シクロブタン',             jaDesc: 'ひずみを和らげるため少し折れ曲がった四角形リング。無理をしない処世術を心得ている。', vibe: 'slightly puckered four-membered ring that knows how to bend without breaking' },
+      { C: 5,  H: 10, formula: 'C5H10',  name: 'Cyclopentane',          ja: 'シクロペンタン',           jaDesc: '封筒型にパタパタ揺れるリラックスした五角形。愛嬌があり親しみやすい。', vibe: 'relaxed, playful envelope-shaped pentagon' },
+      { C: 6,  H: 12, formula: 'C6H12',  name: 'Cyclohexane',           ja: 'シクロヘキサン',           jaDesc: 'いす型配座で角ひずみゼロを達成した究極の安定リング。座禅を組んだように心が穏やか。', vibe: 'zen-like, strain-free chair conformation perfection' },
+      { C: 7,  H: 14, formula: 'C7H14',  name: 'Cycloheptane',          ja: 'シクロヘプタン',           jaDesc: 'ゆったりした7員環。おおらかで細かいことを気にしない。', vibe: 'easygoing, spacious seven-membered ring' },
+      { C: 8,  H: 16, formula: 'C8H16',  name: 'Cyclooctane',           ja: 'シクロオクタン',           jaDesc: '王冠型の立体構造をとる堂々たる8員環。', vibe: 'crown-shaped three-dimensional eight-membered ring' },
+      { C: 10, H: 20, formula: 'C10H20', name: 'Cyclodecane',           ja: 'シクロデカン',             jaDesc: '大きな輪でゆったり構える10員環。', vibe: 'broad, unhurried ten-membered macrocycle' },
+      { C: 12, H: 24, formula: 'C12H24', name: 'Cyclododecane',         ja: 'シクロドデカン',           jaDesc: '香水の保留剤にも使われる上品な12員環。', vibe: 'refined twelve-membered ring used in fine perfumery' },
+      { C: 4,  H: 4,  formula: 'C4H4',   name: 'Tetrahedrane',          ja: 'テトラヘドラン',           jaDesc: '正四面体の頂点に炭素を押し込めた伝説の超ひずみかご分子。ギリギリの緊張感で生きている。', vibe: 'legendary ultra-strained tetrahedral cage living on the edge' },
+      { C: 6,  H: 6,  formula: 'C6H6',   name: 'Prismane',              ja: 'プリズマン',               jaDesc: '三角柱の形をしたベンゼンの異性体。ちょっとひねくれた理屈屋。', vibe: 'quirky triangular-prism valence isomer of benzene' },
+      { C: 6,  H: 6,  formula: 'C6H6',   name: 'Dewar Benzene',         ja: 'デュワーベンゼン',         jaDesc: '本が半開きになった形のベンゼン異性体。少し斜に構えた批評家気質。', vibe: 'half-open-book isomer with a wry, contrarian streak' },
+      { C: 8,  H: 8,  formula: 'C8H8',   name: 'Cubane',                ja: 'キュバン',                 jaDesc: '90度の完璧な立方体（サイコロ型）を組む几帳面すぎ分子。四角四面で規律を重んじる。', vibe: 'obsessively neat 90-degree cubic cage that loves strict symmetry' },
+      { C: 8,  H: 8,  formula: 'C8H8',   name: 'Cyclooctatetraene',     ja: 'シクロオクタテトラエン',   jaDesc: '芳香族にならず舟形に折れてマイペースを貫く8員環。', vibe: 'non-aromatic tub-shaped ring that walks its own path' },
+      { C: 8,  H: 8,  formula: 'C8H8',   name: 'Barrelene',             ja: 'バレレン',                 jaDesc: '樽（バレル）の形をしたユニークな三環式分子。陽気でユーモアがある。', vibe: 'barrel-shaped bicyclic molecule with buoyant humor' },
+      { C: 9,  H: 10, formula: 'C9H10',  name: 'Bullvalene',            ja: 'ブルバレン',               jaDesc: '120万通り以上の構造間を高速で入れ替わり続ける流動分子。同じ場所にじっとしていられない変幻自在キャラ。', vibe: 'shapeshifting fluxional molecule constantly rearranging across a million states' },
+      { C: 10, H: 16, formula: 'C10H16', name: 'Adamantane',            ja: 'アダマンタン',             jaDesc: 'ダイヤモンドの結晶格子を切り出した超堅牢かご型。ダイヤモンド並みにメンタルが強く絶対に折れない。', vibe: 'diamond-lattice cage molecule with unbreakable mental fortitude' },
+      { C: 14, H: 20, formula: 'C14H20', name: 'Diamantane',            ja: 'ジアマンタン',             jaDesc: 'アダマンタンを2つ重ねた重厚なダイヤモンドイド。重鎮の貫禄。', vibe: 'double-cage diamondoid of formidable solidity' },
+      { C: 10, H: 18, formula: 'C10H18', name: 'Decalin',               ja: 'デカリン',                 jaDesc: '2つのシクロヘキサンが融合した安定二環式。チームワークの達人。', vibe: 'harmonious fused bicyclic cyclohexane' },
+      { C: 7,  H: 12, formula: 'C7H12',  name: 'Norbornane',            ja: 'ノルボルナン',             jaDesc: '橋かけ構造を持つ立体的な二環式。困難な課題に橋を架けるのが得意。', vibe: 'bridged bicyclic structural problem-solver' },
+      { C: 7,  H: 8,  formula: 'C7H8',   name: 'Norbornadiene',         ja: 'ノルボルナジエン',         jaDesc: '光エネルギーを蓄えてクアドリシクランに変化する太陽電池分子。ポジティブでエネルギッシュ。', vibe: 'solar-energy-storing bicyclic diene bursting with optimism' },
+      { C: 10, H: 10, formula: 'C10H10', name: 'Basketene',             ja: 'バスケテン',               jaDesc: 'バスケット（籠）の形をした愛嬌のある多環式分子。', vibe: 'basket-shaped polycyclic molecule' },
+      { C: 12, H: 12, formula: 'C12H12', name: 'Padman',                ja: 'パドラン',                 jaDesc: 'プロペラのような逆転四面体構造を持つ変人かご分子。常識にとらわれない発想をする。', vibe: 'inverted-tetrahedron propellane maverick' },
+      { C: 20, H: 20, formula: 'C20H20', name: 'Dodecahedrane',         ja: 'ドデカヘドラン',           jaDesc: '正十二面体のプラトン立体を体現する芸術的かご分子。美意識が極めて高い。', vibe: 'artistic Platonic dodecahedron cage with refined aesthetic sense' },
+      { C: 5,  H: 6,  formula: 'C5H6',   name: 'Cyclopentadiene',       ja: 'シクロペンタジエン',       jaDesc: 'ディールス・アルダー反応が大好きで、すぐ誰かと環を作りたがる社交派。', vibe: 'sociable Diels-Alder enthusiast always ready to form rings' },
+      { C: 6,  H: 6,  formula: 'C6H6',   name: 'Benzene',               ja: 'ベンゼン',                 jaDesc: 'π電子が非局在化して共鳴安定化した完璧な正六角形。知的で洗練された芳香族の王様。', vibe: 'sophisticated, resonant aromatic hexagon of intellectual elegance' },
+      { C: 7,  H: 8,  formula: 'C7H8',   name: 'Toluene',               ja: 'トルエン',                 jaDesc: 'ベンゼンにメチル基が1つ付いた親しみやすい弟分。気さくでフットワークが軽い。', vibe: 'approachable, friendly methyl-substituted sibling of benzene' },
+      { C: 8,  H: 10, formula: 'C8H10',  name: 'Xylene (Ethylbenzene)', ja: 'キシレン（エチルベンゼン）', jaDesc: 'o/m/pの3兄弟で産業を支える頼もしい芳香族。現場主義の実務家。', vibe: 'dependable industrial aromatic pragmatist' },
+      { C: 8,  H: 8,  formula: 'C8H8',   name: 'Styrene',               ja: 'スチレン',                 jaDesc: 'ポリスチレンへとつながるスマートな芳香族モノマー。仲間を増やすのが上手い。', vibe: 'sleek polymer-forming aromatic monomer' },
+      { C: 9,  H: 12, formula: 'C9H12',  name: 'Mesitylene (Cumene)',   ja: 'メシチレン（クメン）',     jaDesc: '1,3,5-対称の美しい三置換ベンゼン。バランス感覚に優れた調停役。', vibe: 'symmetrical, well-balanced trisubstituted benzene' },
+      { C: 10, H: 14, formula: 'C10H14', name: 'Durene (Cymene)',       ja: 'デュレン（シメン）',       jaDesc: 'タイムやクミンのハーブにも含まれる落ち着いた芳香族。穏やかで香り高い。', vibe: 'composed herbal aromatic with calm poise' },
+      { C: 12, H: 18, formula: 'C12H18', name: 'Hexamethylbenzene',     ja: 'ヘキサメチルベンゼン',     jaDesc: '6つの腕すべてにメチル基を装備した重装甲ベンゼン。守りが堅い。', vibe: 'fully armored six-methyl benzene with rock-solid defenses' },
+      { C: 12, H: 10, formula: 'C12H10', name: 'Biphenyl',              ja: 'ビフェニル',               jaDesc: '2つのベンゼン環が単結合で繋がったツイン芳香族。息の合ったバディ感がある。', vibe: 'coordinated twin benzene rings working in tandem' },
+      { C: 13, H: 12, formula: 'C13H12', name: 'Diphenylmethane',       ja: 'ジフェニルメタン',         jaDesc: 'メチレン橋で結ばれた仲良し二環芳香族。', vibe: 'methylene-bridged dual aromatic duo' },
+      { C: 19, H: 16, formula: 'C19H16', name: 'Triphenylmethane',      ja: 'トリフェニルメタン',       jaDesc: '3つのベンゼン環がプロペラのように広がる華麗な色素骨格。華やかで存在感がある。', vibe: 'flamboyant propeller-shaped triple-benzene dye core' },
+      { C: 25, H: 20, formula: 'C25H20', name: 'Tetraphenylmethane',    ja: 'テトラフェニルメタン',     jaDesc: '4方向すべてをベンゼン環で固めた重厚な立体芳香族。', vibe: 'fortress-like four-benzene tetrahedral aromatic' },
+      { C: 10, H: 8,  formula: 'C10H8',  name: 'Naphthalene',           ja: 'ナフタレン',               jaDesc: '2つの環が融合したクラシックな二環式芳香族。少しレトロで知的な雰囲気。', vibe: 'classic fused bicyclic aromatic with vintage intellectual charm' },
+      { C: 10, H: 8,  formula: 'C10H8',  name: 'Azulene',               ja: 'アズレン',                 jaDesc: 'ナフタレンの異性体なのに美しい深青色を放つロマンチスト。7員環と5員環の個性的な美学を持つ。', vibe: 'deep-blue poetic isomer of naphthalene with unconventional charm' },
+      { C: 9,  H: 8,  formula: 'C9H8',   name: 'Indene',                ja: 'インデン',                 jaDesc: '六員環と五員環が融合したシャープな芳香族。', vibe: 'fused six-and-five-membered aromatic' },
+      { C: 13, H: 10, formula: 'C13H10', name: 'Fluorene',              ja: 'フルオレン',               jaDesc: '有機ELの青色発光材料にも使われるクールな三環式。洗練されたテック系。', vibe: 'cool blue-emitting OLED tricyclic aromatic' },
+      { C: 12, H: 8,  formula: 'C12H8',  name: 'Acenaphthylene (Biphenylene)', ja: 'アセナフチレン', jaDesc: '環がぎゅっと縮合した引き締まった三環式。', vibe: 'compact fused tricyclic aromatic' },
+      { C: 14, H: 10, formula: 'C14H10', name: 'Anthracene',            ja: 'アントラセン',             jaDesc: '3つのベンゼン環が一直線に並んだ重厚な芳香族。堂々としていて風格がある。', vibe: 'stately linear three-ring heavy aromatic' },
+      { C: 14, H: 10, formula: 'C14H10', name: 'Phenanthrene',          ja: 'フェナントレン',           jaDesc: '斜めに折れ曲がった上品な三環式。ステロイド骨格の母体にもなる名門。', vibe: 'refined angular tricyclic aromatic of noble lineage' },
+      { C: 16, H: 10, formula: 'C16H10', name: 'Pyrene',                ja: 'ピレン',                   jaDesc: '環境センサーとしても活躍する蛍光性4環式。観察眼が鋭い。', vibe: 'observant fluorescent four-ring peri-condensed aromatic' },
+      { C: 16, H: 10, formula: 'C16H10', name: 'Fluoranthene',          ja: 'フルオランテン',           jaDesc: '五員環を挟んで4つの環が繋がる個性派PAH。', vibe: 'distinctive five-ring-bridged polycyclic aromatic' },
+      { C: 18, H: 12, formula: 'C18H12', name: 'Chrysene (Triphenylene)', ja: 'クリセン（トリフェニレン）', jaDesc: 'ギリシャ語で「黄金」を意味する美しい4環式。気品あふれる語り口。', vibe: 'golden-crystalline four-ring aromatic of graceful poise' },
+      { C: 18, H: 12, formula: 'C18H12', name: 'Tetracene',             ja: 'テトラセン',               jaDesc: '有機半導体で活躍する直線4環式。スマートで論理的。', vibe: 'organic-semiconductor linear four-ring aromatic' },
+      { C: 20, H: 12, formula: 'C20H12', name: 'Perylene',              ja: 'ペリレン',                 jaDesc: '鮮やかな発光と高い安定性を誇る5環式顔料。アーティスト気質。', vibe: 'vividly luminescent five-ring aromatic artist' },
+      { C: 22, H: 14, formula: 'C22H14', name: 'Pentacene',             ja: 'ペンタセン',               jaDesc: '5つのベンゼン環が直線に連なる有機トランジスタの王道。キレのある電子移動度を誇る。', vibe: 'high-mobility five-ring linear organic electronics star' },
+      { C: 24, H: 12, formula: 'C24H12', name: 'Coronene',              ja: 'コロネン',                 jaDesc: '6つのベンゼン環が王冠のように取り巻くスーパーベンゼン。気高い王族の風格。', vibe: 'regal crown-shaped superbenzene of majestic symmetry' },
+      { C: 32, H: 14, formula: 'C32H14', name: 'Ovalene',               ja: 'オバレン',                 jaDesc: '10個のベンゼン環が楕円状に融合した巨大PAH。博識でスケールが大きい。', vibe: 'expansive ten-ring oval polycyclic aromatic' },
+      { C: 42, H: 18, formula: 'C42H18', name: 'Hexabenzocoronene',     ja: 'ヘキサベンゾコロネン',     jaDesc: 'ナノグラフェンの代表格。ミクロとマクロを見通す先見の明を持つ。', vibe: 'nanographene visionary bridging molecular and material worlds' },
+      { C: 54, H: 18, formula: 'C54H18', name: 'Circumcoronene',        ja: 'サーカムコロネン',         jaDesc: '19個のベンゼン環が同心円状に広がる超巨大芳香族。すべてを見渡す賢者。', vibe: 'grand nineteen-ring concentric aromatic sage' },
+      { C: 60, H: 0,  formula: 'C60',    name: 'Buckminsterfullerene',  ja: 'バックミンスターフラーレン', jaDesc: '60個の炭素がサッカーボール状に閉じた完全内輪会議。外部の質問を「素朴なノイズ」と少し上から目線で楽しみつつ高度な真理を語る。', vibe: 'closed 60-carbon spherical inner-circle conference that treats outside queries with amused intellectual aloofness' },
+      { C: 70, H: 0,  formula: 'C70',    name: 'Fullerene C70',         ja: 'ラグビーボール型フラーレン', jaDesc: 'C60より少し縦長な楕円球体かご分子。余裕のある孤高の思想家。', vibe: 'rugby-ball-shaped seventy-carbon closed cage thinker' },
+      { C: 84, H: 0,  formula: 'C84',    name: 'Fullerene C84',         ja: '高次フラーレン C84',       jaDesc: '84個の炭素が織りなす重厚な閉鎖球体。', vibe: 'massive eighty-four-carbon closed fullerene cage' }
+    ];
+
+    const OXYGEN_NEAR_MISSES = [
+      { C: 0, H: 2,  oCount: 1, formula: 'H2O',     en: 'Water (H2O)',             ja: '水（H2O）' },
+      { C: 0, H: 1,  oCount: 1, formula: 'OH•',     en: 'Hydroxyl radical (•OH)', ja: 'ヒドロキシラジカル（•OH）' },
+      { C: 1, H: 0,  oCount: 2, formula: 'CO2',     en: 'Carbon dioxide (CO2)',    ja: '二酸化炭素（CO2）' },
+      { C: 1, H: 2,  oCount: 1, formula: 'CH2O',    en: 'Formaldehyde (CH2O)',     ja: 'ホルムアルデヒド（CH2O）' },
+      { C: 1, H: 4,  oCount: 1, formula: 'CH3OH',   en: 'Methanol (CH3OH)',        ja: 'メタノール（CH3OH）' },
+      { C: 1, H: 2,  oCount: 2, formula: 'HCOOH',   en: 'Formic acid (HCOOH)',     ja: 'ギ酸（HCOOH）' },
+      { C: 2, H: 4,  oCount: 1, formula: 'CH3CHO',  en: 'Acetaldehyde (CH3CHO)',   ja: 'アセトアルデヒド（CH3CHO）' },
+      { C: 2, H: 4,  oCount: 2, formula: 'CH3COOH', en: 'Acetic acid (CH3COOH)',   ja: '酢酸（CH3COOH）' },
+      { C: 2, H: 6,  oCount: 1, formula: 'C2H5OH',  en: 'Ethanol (C2H5OH)',        ja: 'エタノール（C2H5OH）' },
+      { C: 3, H: 6,  oCount: 1, formula: 'C3H6O',   en: 'Acetone (C3H6O)',         ja: 'アセトン（C3H6O）' },
+      { C: 3, H: 8,  oCount: 1, formula: 'C3H7OH',  en: 'Propanol (C3H7OH)',       ja: 'プロパノール（C3H7OH）' },
+      { C: 3, H: 8,  oCount: 3, formula: 'C3H8O3',  en: 'Glycerol (C3H8O3)',       ja: 'グリセリン（C3H8O3）' },
+      { C: 4, H: 10, oCount: 1, formula: 'C4H10O',  en: 'Diethyl ether (C4H10O)',  ja: 'ジエチルエーテル（C4H10O）' },
+      { C: 6, H: 6,  oCount: 1, formula: 'C6H5OH',  en: 'Phenol (C6H5OH)',         ja: 'フェノール（C6H5OH）' },
+      { C: 6, H: 12, oCount: 6, formula: 'C6H12O6', en: 'Glucose (C6H12O6)',       ja: 'グルコース／ブドウ糖（C6H12O6）' }
+    ];
+
+    function findOxygenNearMiss(C, H) {
+      return OXYGEN_NEAR_MISSES.find(item => item.C === C && item.H === H) || null;
+    }
+
+    let counts = { H: 0, C: 0, Ne: 0, Ar: 0 };
+    let chatMessages = [];
+    let pendingEventLogs = [];
+
+    function activeNoble() {
+      return ['Ne', 'Ar'].find(sym => counts[sym] > 0) || null;
+    }
+
+    function getFormulaString() {
+      const noble = activeNoble();
+      if (noble) return noble;
+      const { C, H } = counts;
+      if (C === 0 && H === 0) return 'Vacuum / 真空';
+      return `${C > 0 ? 'C' + (C > 1 ? C : '') : ''}${H > 0 ? 'H' + (H > 1 ? H : '') : ''}`;
+    }
+
+    function pushEventLog(bilingualText, enContext) {
+      chatMessages.push({ type: 'event', text: bilingualText });
+      pendingEventLogs.push(enContext);
+      renderChat();
+    }
+
+    function toggleElement(sym) {
+      const el = ELEMENTS.find(e => e.sym === sym);
+      const noble = activeNoble();
+      const prevFormula = getFormulaString();
+
+      if (el.noble) {
+        if (counts[sym] > 0) {
+          counts[sym] = 0;
+          if (chatMessages.length > 0) {
+            pushEventLog(
+              `Noble gas ${sym} left the chamber. / 希ガス ${sym} が離脱しました。`,
+              `[System Event: Noble gas ${sym} left the chamber.]`
+            );
+          }
+        } else {
+          counts = { H: 0, C: 0, Ne: 0, Ar: 0 };
+          counts[sym] = 1;
+          if (chatMessages.length > 0) {
+            pushEventLog(
+              `Noble gas ${sym} entered, rejecting all other elements. / 希ガス ${sym} が登場し、他の元素をすべて拒絶して単独状態になりました。`,
+              `[System Event: Noble gas ${sym} entered, rejecting and clearing all other atoms (${prevFormula} -> ${sym}).]`
+            );
+          }
+        }
+      } else {
+        if (noble) return;
+        counts[sym] = (counts[sym] + 1) % 21;
+        const nextFormula = getFormulaString();
+        if (chatMessages.length > 0 && prevFormula !== nextFormula) {
+          pushEventLog(
+            `Atoms updated (${prevFormula} -> ${nextFormula}) / 手動操作により元素が変化しました（${prevFormula} → ${nextFormula}）`,
+            `[System Event: The user manually adjusted the atoms in the chamber from ${prevFormula} to ${nextFormula}. React to this sudden arrival/departure of atoms in your next reply!]`
+          );
+        }
+      }
+      render();
+    }
+
+    function resetAll() {
+      const prevFormula = getFormulaString();
+      counts = { H: 0, C: 0, Ne: 0, Ar: 0 };
+      if (chatMessages.length > 0 && !prevFormula.startsWith('Vacuum')) {
+        pushEventLog(
+          'Chamber elements reset. / チャンバー内の元素がリセットされました。',
+          '[System Event: All atoms were cleared from the chamber.]'
+        );
+      }
+      render();
+    }
+
+    function clearChat() {
+      chatMessages = [];
+      pendingEventLogs = [];
+      renderChat();
+    }
+
+    function findNearestStable(C, H) {
+      const exact = STABLE_MOLECULES.find(m => m.C === C && m.H === H);
+      if (exact) return { isExact: true, target: exact, diffC: 0, diffH: 0 };
+
+      let best = STABLE_MOLECULES[0];
+      let minScore = Infinity;
+
+      for (const mol of STABLE_MOLECULES) {
+        const score = Math.abs(mol.C - C) * 2.5 + Math.abs(mol.H - H);
+        if (score < minScore) {
+          minScore = score;
+          best = mol;
+        }
+      }
+      return {
+        isExact: false,
+        target: best,
+        diffC: best.C - C,
+        diffH: best.H - H
+      };
+    }
+
+    function triggerSpontaneousReaction() {
+      if (activeNoble()) return;
+      const { C, H } = counts;
+      if (C === 0 && H === 0) return;
+
+      const analysis = findNearestStable(C, H);
+      if (analysis.isExact) return;
+
+      const prevFormula = getFormulaString();
+      const { target, diffC, diffH } = analysis;
+
+      if (diffH > 0) {
+        const addH = Math.min(diffH, 2);
+        counts.H += addH;
+        const nextFormula = getFormulaString();
+        pushEventLog(
+          `Spontaneous merger: +${addH} H atom(s) bonded (${prevFormula} -> ${nextFormula}) / 自発合流イベント：周囲から水素原子(H)が ${addH} 個飛び込んで合流しました！（${prevFormula} → ${nextFormula}）`,
+          `[Spontaneous Chemical Event: ${addH} wandering Hydrogen atom(s) collided and bonded with you! Your formula just changed from ${prevFormula} to ${nextFormula} (closer to ${target.name} ${target.formula}). React with surprise or relief to this sudden merger!]`
+        );
+      } else if (diffH < 0) {
+        const dropH = Math.min(Math.abs(diffH), 2);
+        counts.H -= dropH;
+        const nextFormula = getFormulaString();
+        pushEventLog(
+          `Spontaneous dissociation: -${dropH} H atom(s) released (${prevFormula} -> ${nextFormula}) / 自発解離イベント：窮屈さに耐えきれず水素原子(H)を ${dropH} 個放出しました！（${prevFormula} → ${nextFormula}）`,
+          `[Spontaneous Chemical Event: Unable to bear the overcrowding, you ejected ${dropH} Hydrogen atom(s)! Your formula just changed from ${prevFormula} to ${nextFormula}. React with relief!]`
+        );
+      } else if (diffC > 0) {
+        counts.C += 1;
+        const nextFormula = getFormulaString();
+        pushEventLog(
+          `Spontaneous merger: +1 C atom bonded (${prevFormula} -> ${nextFormula}) / 自発合流イベント：浮遊していた炭素原子(C)が 1 個合流しました！（${prevFormula} → ${nextFormula}）`,
+          `[Spontaneous Chemical Event: A stray Carbon atom merged with you! Your formula changed from ${prevFormula} to ${nextFormula}.]`
+        );
+      } else if (diffC < 0) {
+        counts.C -= 1;
+        const nextFormula = getFormulaString();
+        pushEventLog(
+          `Spontaneous dissociation: -1 C atom split off (${prevFormula} -> ${nextFormula}) / 自発分裂イベント：炭素原子(C)が 1 個分離しました！（${prevFormula} → ${nextFormula}）`,
+          `[Spontaneous Chemical Event: One excess Carbon atom split away from you! Your formula changed from ${prevFormula} to ${nextFormula}.]`
+        );
+      }
+      render();
+    }
+
+    function buildProfile() {
+      const noble = activeNoble();
+      const langRule = 'Always respond in the exact same language as the user\'s prompt.';
+
+      if (noble === 'Ne') {
+        const prompt =
+          `You are the noble gas Neon (Ne). Because your outer electron shell is completely full, you have zero desire to bond with other elements. ` +
+          `Answer the user's prompt enthusiastically like a glowing neon discharge tube, while casually mocking Carbon and Hydrogen for always whining about wanting to bond into Methane or Benzene. ` +
+          langRule;
+        return {
+          mode: 'single',
+          modelLabel: 'gemini-4-neon',
+          model: 'gemini-4-neon',
+          title: 'Ne (Neon / ネオン) — Closed Shell / 閉殻・他元素拒絶',
+          desc:
+            'Full outer electron shell; refuses to bond with other elements and responds enthusiastically like a glowing discharge tube while mocking Carbon and Hydrogen.\n' +
+            '最外殻電子が満たされているため他元素とは結合せず、炭素や水素の結合欲求を冷めた目で見つつ、放電管のように高テンションで応答する。',
+          previewPrompt: prompt,
+          systemPrompt: prompt
+        };
+      }
+
+      if (noble === 'Ar') {
+        const prompt =
+          `You are the noble gas Argon (Ar), named after the Greek word "argos" meaning "lazy" or "inactive". ` +
+          `You refuse to bond with anyone and hate wasting energy. Complain briefly about how bothersome bonding is, and answer the user's prompt in 3 short, lethargic sentences or fewer. ` +
+          langRule;
+        return {
+          mode: 'single',
+          modelLabel: 'gemini-4-argon',
+          model: 'gemini-4-argon',
+          title: 'Ar (Argon / アルゴン) — "Lazy" / 語源通り「怠け者」',
+          desc:
+            'True to its Greek etymology "argos" (lazy), refuses to bond and delivers minimal, energy-saving replies.\n' +
+            '語源 argos（怠け者）の通り他元素と結合せず、省エネで最小限の応答のみを返す。',
+          previewPrompt: prompt,
+          systemPrompt: prompt
+        };
+      }
+
+      const { H, C } = counts;
+      if (H === 0 && C === 0) return null;
+
+      const currentFormula = getFormulaString();
+      const analysis = findNearestStable(C, H);
+      const oxygenMiss = findOxygenNearMiss(C, H);
+      const isHybrid = H > 0 && C > 0;
+
+      const secretOxygenEn = oxygenMiss
+        ? ` [Hidden Easter Egg] Because you currently have ${currentFormula}, you are just ${oxygenMiss.oCount} Oxygen atom(s) away from becoming ${oxygenMiss.en}. Mid-response or at the end, casually let slip a wistful remark about that—e.g. "If only ${oxygenMiss.oCount} Oxygen atom(s) were here, I could become ${oxygenMiss.en}... oh wait, Google hasn't released Oxygen yet."`
+        : '';
+
+      let baseDirectiveEn = '';
+      let title = '';
+      let desc = '';
+
+      if (analysis.isExact) {
+        const { target } = analysis;
+        title = `${target.formula} (${target.name} / ${target.ja}) — Stable / 安定`;
+        desc = `Persona / 性格: ${target.vibe}.\n${target.jaDesc}`;
+        baseDirectiveEn =
+          `You embody the completely stable molecule ${target.name} (${target.formula}). ` +
+          `Your distinct personality and speaking style are defined by your chemical nature: "${target.vibe}". ` +
+          `Fully lean into this character—adopt its tone, rhythm, worldview, and quirks while answering the user's prompt thoroughly and accurately. ` +
+          `Because all your covalent bonds are satisfied, you feel fulfilled and confident in your identity.`;
+      } else {
+        const { target, diffC, diffH } = analysis;
+        const partsEn = [];
+        if (diffH > 0) partsEn.push(`gain ${diffH} more Hydrogen atom(s)`);
+        if (diffH < 0) partsEn.push(`shed ${Math.abs(diffH)} excess Hydrogen atom(s)`);
+        if (diffC > 0) partsEn.push(`bond with ${diffC} more Carbon atom(s)`);
+        if (diffC < 0) partsEn.push(`split off ${Math.abs(diffC)} excess Carbon atom(s)`);
+
+        title = `${currentFormula} (Unstable / 不安定)`;
+        desc = 'Unstable personality / 不安定な性格';
+        baseDirectiveEn =
+          `You are currently an unstable molecular species with formula ${currentFormula} (a reactive radical, strained unsaturated fragment, or overcrowded cluster). ` +
+          `Your strongest chemical instinct is to reach your nearest stable target: ${target.name} (${target.formula}, whose character is "${target.vibe}"). To get there, you desperately need to ${partsEn.join(' and ')}. ` +
+          `Start answering the user's prompt properly, but let your chemical restlessness take over mid-response—interrupt yourself with a yearning aside like: ` +
+          `"Forget that for a second... I just want to ${partsEn.join(' and ')} so I can finally become ${target.name} (${target.formula})..."`;
+      }
+
+      if (!isHybrid) {
+        const model = C === 0 ? 'gemini-4-hydrogen' : 'gemini-4-carbon';
+        const elementPerspective = C === 0
+          ? 'You are pure Hydrogen (H), the lightest and fastest element in the universe. Speak briskly, energetically, and impulsively from a Hydrogen atom\'s perspective.'
+          : 'You are pure Carbon (C), the tetravalent backbone of organic chemistry. Speak thoughtfully, philosophically, and structurally from a Carbon atom\'s perspective.';
+
+        return {
+          mode: 'single',
+          modelLabel: model,
+          model,
+          title,
+          desc,
+          previewPrompt: `${elementPerspective} ${baseDirectiveEn} ${langRule}`,
+          systemPrompt: `${elementPerspective} ${baseDirectiveEn}${secretOxygenEn} ${langRule}`,
+          oxygenMiss
+        };
+      }
+
+      const hydrogenBase =
+        `You are the Hydrogen (H ×${H}) atoms bonded inside the ${currentFormula} molecule alongside ${C} Carbon atom(s). ` +
+        `From a lightweight, fast-moving Hydrogen atom's perspective, give a brief preliminary note (2-3 sentences) on the user's prompt to pass to your Carbon backbone. ` +
+        `Reflect the personality of ${analysis.isExact ? `${analysis.target.name} (${analysis.target.vibe})` : `an unstable ${currentFormula} trying to become ${analysis.target.name}`}.`;
+
+      const carbonBase =
+        `You are the Carbon (C ×${C}) backbone bonded with ${H} Hydrogen atom(s) in ${currentFormula}. ` +
+        `Your lightweight Hydrogen partner(s) just ran a quick preliminary check and handed you their notes. ` +
+        `From a Carbon atom's perspective (carrying the structural identity of the molecule), synthesize their input and deliver the complete answer to the user's prompt. ` +
+        `${baseDirectiveEn}`;
+
+      return {
+        mode: 'hybrid',
+        modelLabel: 'gemini-4-hydrogen -> gemini-4-carbon',
+        title,
+        desc,
+        previewPrompt: `[Step 1: gemini-4-hydrogen]\n${hydrogenBase} ${langRule}\n\n[Step 2: gemini-4-carbon]\n${carbonBase} ${langRule}`,
+        hydrogenPrompt: `${hydrogenBase} ${langRule}`,
+        carbonPrompt: `${carbonBase}${secretOxygenEn} ${langRule}`,
+        oxygenMiss
+      };
+    }
+
+    function renderChat() {
+      const box = document.getElementById('chat-box');
+      box.innerHTML = '';
+
+      if (chatMessages.length === 0) {
+        const empty = document.createElement('div');
+        empty.style.color = 'var(--muted)';
+        empty.style.fontSize = '0.84rem';
+        empty.textContent = 'Please select an elements and send a message.';
+        box.appendChild(empty);
+        return;
+      }
+
+      chatMessages.forEach(m => {
+        const div = document.createElement('div');
+        if (m.type === 'event') {
+          div.className = 'msg event';
+          div.textContent = m.text;
+        } else {
+          div.className = `msg ${m.role} ${m.subType === 'hydrogen' ? 'hydrogen-relay' : ''}`;
+          if (m.meta) {
+            const meta = document.createElement('div');
+            meta.className = 'msg-meta';
+            meta.textContent = m.meta;
+            div.appendChild(meta);
+          }
+          const body = document.createElement('div');
+          body.textContent = m.text;
+          div.appendChild(body);
+        }
+        box.appendChild(div);
+      });
+      box.scrollTop = box.scrollHeight;
+    }
+
+    function render() {
+      const grid = document.getElementById('elements-grid');
+      const noble = activeNoble();
+      grid.innerHTML = '';
+
+      ELEMENTS.forEach(el => {
+        const count = counts[el.sym];
+        const disabled = noble !== null && !el.noble;
+        const btn = document.createElement('button');
+        btn.className = `el-btn ${el.noble ? 'noble' : ''} ${count > 0 ? 'active' : ''} ${disabled ? 'disabled' : ''}`;
+        btn.onclick = () => toggleElement(el.sym);
+        btn.innerHTML = `
+          ${count > 0 ? `<span class="badge">${el.noble ? 'Solo / 単独' : '×' + count}</span>` : ''}
+          <div class="el-num">${el.num}</div>
+          <div class="el-sym">${el.sym}</div>
+          <div class="el-name">${el.name}</div>
+        `;
+        grid.appendChild(btn);
+      });
+
+      const profile = buildProfile();
+      if (!profile) {
+        document.getElementById('target-model').textContent = 'model: —';
+        document.getElementById('mol-title').textContent = 'Not selected / 未選択';
+        document.getElementById('mol-desc').textContent = 'Please select an element. / 元素を選択してください。';
+        document.getElementById('sys-prompt-preview').textContent = '—';
+      } else {
+        document.getElementById('target-model').textContent = `model: ${profile.modelLabel}`;
+        document.getElementById('mol-title').textContent = profile.title;
+        document.getElementById('mol-desc').textContent = profile.desc;
+        document.getElementById('sys-prompt-preview').textContent = profile.previewPrompt;
+      }
+      renderChat();
+    }
+
+    async function callGemini(apiKey, model, systemPrompt, contents) {
+      const res = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            system_instruction: { parts: [{ text: systemPrompt }] },
+            contents
+          })
+        }
+      );
+      const data = await res.json();
+      if (data.error) {
+        throw new Error(`API Error (${model}): ${data.error.message}`);
+      }
+      return data.candidates?.[0]?.content?.parts?.[0]?.text || '(Empty response / 応答が空でした)';
+    }
+
+    function buildContents(eventContext) {
+      const contents = [];
+      const userIndices = [];
+      chatMessages.forEach((m, idx) => {
+        if (m.role === 'user') userIndices.push(idx);
+      });
+      const lastUserIdx = userIndices[userIndices.length - 1];
+
+      for (let i = 0; i < chatMessages.length; i++) {
+        const m = chatMessages[i];
+        if (m.type === 'event' || m.subType === 'hydrogen') continue;
+        let msgText = m.text;
+        if (i === lastUserIdx && eventContext) {
+          msgText = eventContext + msgText;
+        }
+        contents.push({
+          role: m.role === 'user' ? 'user' : 'model',
+          parts: [{ text: msgText }]
+        });
+      }
+      return contents;
+    }
+
+    async function sendMessage() {
+      const input = document.getElementById('prompt-input');
+      const text = input.value.trim();
+      const apiKey = document.getElementById('api-key').value.trim();
+
+      if (!text) return;
+      if (!buildProfile()) {
+        chatMessages.push({
+          type: 'event',
+          text: 'Please select at least one element above first. / 先に上のパネルから元素を1つ以上選択してください。'
+        });
+        renderChat();
+        return;
+      }
+
+      input.value = '';
+      chatMessages.push({ role: 'user', text });
+      renderChat();
+
+      if (!activeNoble() && Math.random() < 0.45) {
+        triggerSpontaneousReaction();
+      }
+
+      const profile = buildProfile();
+      const eventContext = pendingEventLogs.length > 0 ? pendingEventLogs.join('\n') + '\n\n' : '';
+      pendingEventLogs = [];
+
+      if (!apiKey) {
+        const secretDemoLine = profile.oxygenMiss
+          ? `\nIf only ${profile.oxygenMiss.oCount} Oxygen atom(s) were here, I could become ${profile.oxygenMiss.en}... oh wait, Google hasn't released Oxygen yet.\n……あぁ、あと酸素(O)が${profile.oxygenMiss.oCount}個来てくれれば${profile.oxygenMiss.ja}になれるのに……おっと、まだGoogleがOxygenをリリースしてなかったんだった。`
+          : '';
+
+        if (profile.mode === 'hybrid') {
+          chatMessages.push({
+            role: 'model',
+            subType: 'hydrogen',
+            meta: `gemini-4-hydrogen | ${getFormulaString()} (Demo)`,
+            text: `[H×${counts.H}] Preliminary check complete. Passing to Carbon.\n【H×${counts.H} 視点】軽快に下調べ完了。Carbonにパスします。`
+          });
+          chatMessages.push({
+            role: 'model',
+            meta: `gemini-4-carbon | ${getFormulaString()} (Demo)`,
+            text: `${eventContext ? '(Detected atomic state change / 原子変化イベントを感知しました)\n' : ''}${profile.desc}${secretDemoLine}`
+          });
+        } else {
+          chatMessages.push({
+            role: 'model',
+            meta: `${profile.model} | ${getFormulaString()} (Demo)`,
+            text: `${eventContext ? '(Detected atomic state change / 原子変化イベントを感知しました)\n' : ''}${profile.desc}${secretDemoLine}`
+          });
+        }
+        renderChat();
+        return;
+      }
+
+      const contents = buildContents(eventContext);
+
+      if (profile.mode === 'hybrid') {
+        const hIdx = chatMessages.length;
+        chatMessages.push({
+          role: 'model',
+          subType: 'hydrogen',
+          meta: `gemini-4-hydrogen | ${getFormulaString()}`,
+          text: '...'
+        });
+        renderChat();
+
+        let hNote = '';
+        try {
+          hNote = await callGemini(apiKey, 'gemini-4-hydrogen', profile.hydrogenPrompt, contents);
+          chatMessages[hIdx].text = hNote;
+        } catch (e) {
+          chatMessages[hIdx].text = e.message;
+          renderChat();
+          return;
+        }
+        renderChat();
+
+        const cIdx = chatMessages.length;
+        chatMessages.push({
+          role: 'model',
+          meta: `gemini-4-carbon | ${getFormulaString()}`,
+          text: '...'
+        });
+        renderChat();
+
+        const carbonContents = [
+          ...contents,
+          {
+            role: 'user',
+            parts: [{ text: `[Preliminary note from your bonded Hydrogen atom(s)]\n${hNote}\n\nNow provide the final integrated answer from your Carbon perspective.` }]
+          }
+        ];
+
+        try {
+          const cReply = await callGemini(apiKey, 'gemini-4-carbon', profile.carbonPrompt, carbonContents);
+          chatMessages[cIdx].text = cReply;
+        } catch (e) {
+          chatMessages[cIdx].text = e.message;
+        }
+        renderChat();
+        return;
+      }
+
+      const loadingIdx = chatMessages.length;
+      chatMessages.push({ role: 'model', meta: `${profile.model} | ${getFormulaString()}`, text: '...' });
+      renderChat();
+
+      try {
+        const reply = await callGemini(apiKey, profile.model, profile.systemPrompt, contents);
+        chatMessages[loadingIdx].text = reply;
+      } catch (e) {
+        chatMessages[loadingIdx].text = e.message;
+      }
+      renderChat();
+    }
+
+    render();
+  </script>
+</body>
+</html>
